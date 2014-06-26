@@ -1,7 +1,7 @@
 # coding: utf-8
 Gem::Specification.new do |s|
   s.name = 'ross'
-  s.version = '0.0.1'
+  s.version = '0.0.2'
   s.platform = Gem::Platform::RUBY
   s.summary = "ROSS is a ruby client for aliyun oss"
   s.authors = ["Fizz Wu"]

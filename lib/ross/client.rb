@@ -1,5 +1,6 @@
 # coding: utf-8
 require 'rest-client'
+require 'base64'
 
 module ROSS
   class Client
@@ -9,43 +10,59 @@ module ROSS
       @bucket_name = options[:bucket_name]
       @appid = options[:appid]
       @appkey = options[:appkey]
-      @aliyun_host = "oss.aliyuncs.com"
+      @aliyun_host = options[:bucket_host] || "oss.aliyuncs.com"
       if options[:aliyun_internal] == true
         @aliyun_host = "oss-internal.aliyuncs.com"
       end
     end
     
-    def put(path, file, options={})
-      content_md5 = Digest::MD5.hexdigest(file)
-      content_type = options[:content_type] || "image/jpg"
+    def put(path, content, options={})
+      content_md5 = Digest::MD5.hexdigest(content)
+      content_type = options[:content_type] || "application/octet-stream"
       date = Time.now.gmtime.strftime("%a, %d %b %Y %H:%M:%S GMT")
-      path = "#{@bucket_name}/#{path}"
-      url = "http://#{@aliyun_host}/#{path}"
-      auth_sign = sign("PUT", path, content_md5, content_type, date)
+      auth_sign = sign("PUT", path, date, content_type, content_md5)
       headers = {
-                  "Authorization" => auth_sign, 
-                  "Content-Type" => content_type,
-                  "Content-Length" => file.length,
-                  "Date" => date,
-                  "Host" => @aliyun_host,
-                }
-                
-      response = RestClient.put(url, file, headers)
+        "Authorization" => "OSS #{@appid}:#{auth_sign}", 
+        "Content-Type" => content_type,
+        "Content-Length" => content.length,
+        "Date" => date,
+        "Host" => @aliyun_host,
+      }
+      response = RestClient.put(request_url(path), content, headers)
+    end
+
+    def put_file(path, file, options = {})
+      put(path, File.read(file), options)
     end
     
-    def get(path)
-      return "http://#{@bucket_name}.#{@aliyun_host}/#{path}"
+    def public_url(path)
+      "http://#{@bucket_name}.#{@aliyun_host}/#{path}"
+    end
+
+    alias :get :public_url
+
+    def private_url(path, expires_in = 3600)
+      expires_at = (8*3600 + Time.now.gmtime.to_i) + expires_in
+      params = {
+        'Expires' => expires_at,
+        'OSSAccessKeyId' => @appid,
+        'Signature' => sign('GET', path, expires_at)
+      }
+      public_url(path) + '?' + URI.encode_www_form(params)
     end
     
     private
-    def sign(verb, path, content_md5, content_type, date)
+    def sign(verb, path, date, content_type = nil, content_md5 = nil)
       canonicalized_oss_headers = ''
-      canonicalized_resource = "/#{path}"
+      canonicalized_resource = "/#{@bucket_name}/#{path.gsub(/^\//, '')}"
       string_to_sign = "#{verb}\n\n#{content_type}\n#{date}\n#{canonicalized_oss_headers}#{canonicalized_resource}"
-      digest = OpenSSL::Digest::Digest.new('sha1')
+      digest = OpenSSL::Digest.new('sha1')
       h = OpenSSL::HMAC.digest(digest, @appkey, string_to_sign)
-      h = Base64.encode64(h)
-      "OSS #{@appid}:#{h}"
+      Base64.encode64(h).strip
+    end
+
+    def request_url(path)
+      "http://#{@aliyun_host}/#{@bucket_name}/#{path}"
     end
   end
 end
