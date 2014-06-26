@@ -17,10 +17,10 @@ module ROSS
     end
     
     def put(path, content, options={})
-      content_md5 = Digest::MD5.hexdigest(content)
+      # content_md5 = Digest::MD5.hexdigest(content)
       content_type = options[:content_type] || "application/octet-stream"
       date = Time.now.gmtime.strftime("%a, %d %b %Y %H:%M:%S GMT")
-      auth_sign = sign("PUT", path, date, content_type, content_md5)
+      auth_sign = sign("PUT", path, date, content_type) #, content_md5)
       headers = {
         "Authorization" => "OSS #{@appid}:#{auth_sign}", 
         "Content-Type" => content_type,
