@@ -62,7 +62,7 @@ module ROSS
     end
 
     def request_url(path)
-      "http://#{@aliyun_host}/#{@bucket_name}/#{path}"
+      "http://#{@aliyun_host}/#{@bucket_name}/#{URI.encode(path)}"
     end
   end
 end
