@@ -33,14 +33,34 @@ module ROSS
 
     def delete(path)
       date = Time.now.gmtime.strftime("%a, %d %b %Y %H:%M:%S GMT")
-      content_type = nil
       headers = {
-        "Authorization" => auth_sign("DELETE", path, date, content_type),
-        "Content-Type" => content_type,
+        "Authorization" => auth_sign("DELETE", path, date),
+        "Content-Type" => nil,
         "Date" => date,
         "Host" => @aliyun_host
       }
-      RestClient.delete(request_url(path), headers)
+      response = RestClient.delete(request_url(path), headers)
+    end
+
+    def head(path)
+      date = Time.now.gmtime.strftime("%a, %d %b %Y %H:%M:%S GMT")
+      headers = {
+        "Authorization" => auth_sign("HEAD", path, date),
+        "Content-Type" => nil,
+        "Date" => date,
+        "Host" => @aliyun_host
+      }
+      response = RestClient.head(request_url(path), headers)
+    end
+
+    def exists?(path)
+      begin
+        head(path)
+      rescue RestClient::ResourceNotFound
+        false
+      else
+        true
+      end
     end
 
     def copy(sour_path, dest_path)
