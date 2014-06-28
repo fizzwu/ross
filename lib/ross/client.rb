@@ -69,7 +69,7 @@ module ROSS
 
     def rename(sour_path, dest_path)
       copy(sour_path, dest_path)
-      delete(path)
+      delete(sour_path)
     end
 
     def put_file(path, file, options = {})
